@@ -1,0 +1,102 @@
+---
+title: "surgery times"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-09-18"
+---
+
+```{r setup, include=FALSE}
+install.packages("tidyverse")
+library(tidyverse)
+```
+
+```{r}
+library(dplyr)
+surgery_times<- read.csv("surgery_times.csv")
+```
+
+## R Markdown
+1. What is the average time these encouters occur? 
+```{r surgery_times_modification}
+
+surgery_updated<-surgery_times%>%
+  mutate(hours_from_6pm = ifelse(hour<=6, hour+6, hour-18))%>%
+  filter(hours_from_6pm>0)
+
+surgery_updated
+```
+
+```{r}
+surgery_updated%>%
+  filter(hours_from_6pm<0)
+```
+
+```{r}
+
+ggplot(data=surgery_updated, mapping=aes(x=hours_from_6pm))+geom_histogram()
+  
+)
+```
+
+```{r}
+mean(surgery_updated$hours_from_6pm)
+summary(surgery_updated$hours_from_6pm)
+```
+
+
+Is there an evidence of difference between two hospitals? 
+
+```{r}
+
+summary(surgery_updated%>% filter(hospital == 'A') %>% .$hours_from_6pm)
+
+summary(surgery_updated%>% filter(hospital == 'B') %>% .$hours_from_6pm)
+
+```
+
+```{r}
+ggplot(surgery_updated, aes(hospital, hours_from_6pm)) +
+        geom_boxplot()
+```
+
+
+```{r}
+t.test(hours_from_6pm ~ hospital, data = surgery_updated)
+```
+
+2. Controlling for hospital, age of patient, and day of week, is there any evidence of differential complication outcomes depending on time of day of ER encounter?
+
+```{r}
+surgery_updated_1<-surgery_updated%>%
+  mutate(complication_number = ifelse(complication=="No",0,1))
+
+  surgery_updated_1
+```
+
+```{r}
+#logistic regression 
+#significance value for time of day 
+
+complication_model <- glm(complication_number ~ age + hospital + dow + hours_from_6pm,
+                       data = surgery_updated_1, 
+                       family = "binomial")
+
+
+complication_model
+summary(complication_model)
+```
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
